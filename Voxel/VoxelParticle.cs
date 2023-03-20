@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 
+[RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(Rigidbody))]
 public class VoxelParticle : MonoBehaviour
@@ -18,7 +19,6 @@ public class VoxelParticle : MonoBehaviour
     {
         _rigidbody = GetComponent<Rigidbody>();
         _render = GetComponent<MeshRenderer>();
-
         _livingTime = _livingTimeMax;
         _sizeToTimeFactor = 1 / _livingTimeMax;
     }
@@ -32,9 +32,10 @@ public class VoxelParticle : MonoBehaviour
             Destroy(gameObject);
     }
 
-    public void SetParams(float size, Color color,Vector3 explosionPosition)
+    public void SetParams(float size, Color color, Vector3 explosionPosition)
     {
         transform.localScale *= size;
+        _render.material.color = color;
         _defaultSize = transform.localScale;
         _rigidbody.AddExplosionForce(_detachForce, explosionPosition, _detachForce);
     }

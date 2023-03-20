@@ -9,16 +9,18 @@ public class VoxelVolume : IVoxelVolume
     [SerializeField] private bool _canBeReallocated = false;
     private Vector3Int _size;
     private BitArray[,] _bits;
-    private IVolumeReadOnly<Color> _prefabToBuild;
+    private IVolumeReadOnly<Color> _colors;
     private bool _isChangeEventEnabled = true;
 
+
     public event Action<Vector3Int> Changed;
-    public event Action Rebuilt;
+    public event Action Matched;
 
 
-    public IVolumeReadOnly<Color> PrefabToBuild => _prefabToBuild;
+    public IVolumeReadOnly<Color> Colors => _colors;
     public bool UndefinedValue => false;
     public bool CanBeReallocated => _canBeReallocated;
+    public bool IsChangeEventEnabled => _isChangeEventEnabled;
     public Vector3 Size => _size;
 
 
@@ -32,7 +34,7 @@ public class VoxelVolume : IVoxelVolume
 
     public IVoxelVolume Init(IVolumeReadOnly<Color> colorPrefab, bool canBeReallocated)
     {
-        SetVolumePrefabToBuild(colorPrefab);
+        SetColors(colorPrefab);
         _canBeReallocated = canBeReallocated;
 
         return this;
@@ -42,11 +44,11 @@ public class VoxelVolume : IVoxelVolume
     {
         Vector3Int size = default;
 
-        if(_prefabToBuild is not null)
+        if(_colors is not null)
         {
-            size.x = (int)_prefabToBuild.Size.x;
-            size.y = (int)_prefabToBuild.Size.y;
-            size.z = (int)_prefabToBuild.Size.z;
+            size.x = (int)_colors.Size.x;
+            size.y = (int)_colors.Size.y;
+            size.z = (int)_colors.Size.z;
 
             Allocate(size, IVoxelVolume.Empty);
         }
@@ -72,9 +74,19 @@ public class VoxelVolume : IVoxelVolume
         }
     }
 
-    public void MatchToPrefab()
+    public void EnableChangeEvent()
     {
-        if (_prefabToBuild is null)
+        _isChangeEventEnabled = true;
+    }
+
+    public void DisableChangeEvent()
+    {
+        _isChangeEventEnabled = false;
+    }
+
+    public void MatchToColors()
+    {
+        if (_colors is null)
             return;
 
         _isChangeEventEnabled = false;
@@ -85,7 +97,7 @@ public class VoxelVolume : IVoxelVolume
             {
                 for (int y = 0; y < _size.y; y++)
                 {
-                    if (_prefabToBuild.GetValue(x, y, z) != _prefabToBuild.UndefinedValue)
+                    if (_colors.GetValue(x, y, z) != _colors.UndefinedValue)
                         SetValue(new Vector3Int(x, y, z), IVoxelVolume.Full);
                 }
             }
@@ -93,7 +105,7 @@ public class VoxelVolume : IVoxelVolume
 
         _isChangeEventEnabled = true;
 
-        Rebuilt?.Invoke();
+        Matched?.Invoke();
     }
 
     public void SetValue(Vector3Int position, bool value)
@@ -114,7 +126,10 @@ public class VoxelVolume : IVoxelVolume
         }
     }
 
-    public void SetVolumePrefabToBuild(IVolumeReadOnly<Color> colorPrefab) => _prefabToBuild = colorPrefab;
+    public void SetColors(IVolumeReadOnly<Color> colorPrefab)
+    {
+        _colors = colorPrefab;
+    }
 
     public bool GetValue(Vector3Int position)
     {

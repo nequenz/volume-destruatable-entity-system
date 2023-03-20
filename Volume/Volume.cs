@@ -7,6 +7,7 @@ public abstract class Volume<T> : IVolume<T>
     private T[,,] _array;
     private Vector3Int _size;
     private bool _canBeReallocated = false;
+    private bool _isChangeEventEnabled = true;
 
 
     public event Action<Vector3Int> Changed;
@@ -14,6 +15,7 @@ public abstract class Volume<T> : IVolume<T>
 
     public abstract T UndefinedValue { get; }
     public bool CanBeReallocated => _canBeReallocated;
+    public bool IsChangeEventEnabled => _isChangeEventEnabled;
     public Vector3 Size => _size;
 
 
@@ -53,8 +55,19 @@ public abstract class Volume<T> : IVolume<T>
         {
             _array[position.x, position.y, position.z] = value;
 
-            Changed?.Invoke(position);
+            if(_isChangeEventEnabled)
+                Changed?.Invoke(position);
         }
+    }
+
+    public void EnableChangeEvent()
+    {
+        _isChangeEventEnabled = true;
+    }
+
+    public void DisableChangeEvent()
+    {
+        _isChangeEventEnabled = false;
     }
 
     public virtual T GetValue(Vector3Int position)

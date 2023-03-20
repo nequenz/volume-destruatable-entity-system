@@ -6,13 +6,13 @@ using UnityEngine;
 public class VoxelMesh : IVoxelMesh
 {
     [SerializeField] private float _sizeFactor = 1f;
-    [SerializeField] private float _rebuildDelay = 0.55f;
     [SerializeField] private MeshFilter _filter;
     private IVolumeReadOnly<Color> _colors;
     private IVoxelVolume _voxels;
     private Mesh _mesh;
     private float _currentDelay = 0.0f;
     private bool _isDirty = false;
+    private bool _isRebuildingSuspended = false;
 
 
     public event Action Rebuilt;
@@ -23,13 +23,12 @@ public class VoxelMesh : IVoxelMesh
     public Mesh BuiltMesh => _mesh;
     public float FaceSize => _sizeFactor;
     public bool IsDirty => _isDirty;
-    public float RebuildDelay => _rebuildDelay;
 
 
     private void OnVoxelsChanged(Vector3Int position)
     {
-        //_currentDelay = Mathf.Clamp(_rebuildDelay, 0, _rebuildDelay);
-        RebuildForced();
+        if(_isRebuildingSuspended == false)
+            RebuildForced();
     }
 
     private void AddFace(Vector3 position, Quaternion rotation, Color color)
@@ -37,14 +36,13 @@ public class VoxelMesh : IVoxelMesh
         const float OffsetZ = 2;
 
         float _sideCenter = -_sizeFactor / 2;
-        Vector3 offset = new Vector3(_sideCenter, -_sideCenter, _sideCenter);
-        Vector3 validSize = new Vector3(_voxels.Size.x, _voxels.Size.y - OffsetZ, _voxels.Size.z);
+        Vector3 offset = new (_sideCenter, -_sideCenter, _sideCenter);
+        Vector3 validSize = new (_voxels.Size.x, _voxels.Size.y - OffsetZ, _voxels.Size.z);
         Vector3[] vertices = new Vector3[VoxelMeshInfo.SideVertexCount];
-        Vector3[] normals = new Vector3[VoxelMeshInfo.SideVertexCount];
+        Vector3[] normals = { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
         int[] triangles = new int[VoxelMeshInfo.SideTriangleCount];
 
         VoxelMeshInfo.SetVertices(ref vertices);
-        VoxelMeshInfo.SetNormals(ref normals);
         VoxelMeshInfo.SetTriangles(ref triangles);
 
         for (int i = 0; i < vertices.Length; i++)
@@ -69,7 +67,6 @@ public class VoxelMesh : IVoxelMesh
         SetVoxelVolume(voxels);
         SetColorVolume(colors);
         SetMeshFilter(filter);
-        SetRebuildDelay(delay);
         SetSize(size);
 
         return this;
@@ -96,12 +93,20 @@ public class VoxelMesh : IVoxelMesh
         _filter = filter;
     }
 
-    public void SetRebuildDelay(float delay) => _rebuildDelay = delay;
-
     public void SetSize(float size)
     {
         _sizeFactor = size;
         _isDirty = true;
+    }
+
+    public void SuspendRebuilding()
+    {
+        _isRebuildingSuspended = true;
+    }
+
+    public void ResumeRebuilding()
+    {
+        _isRebuildingSuspended = false;
     }
 
     public void RebuildForced()
@@ -113,7 +118,11 @@ public class VoxelMesh : IVoxelMesh
             return;
 
         if (_mesh is null)
+        {
             _mesh = new();
+            _mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        }
+            
 
         _mesh.Clear();
         MeshAllocator.Clear();

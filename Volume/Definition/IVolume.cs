@@ -11,6 +11,7 @@ public interface IVolume<T>
     public T UndefinedValue { get; }
     public bool CanBeReallocated { get; }
     public Vector3 Size { get; }
+    public bool IsChangeEventEnabled { get; }
 
 
     public void Allocate();
@@ -18,6 +19,10 @@ public interface IVolume<T>
     public void Allocate(Vector3Int size, T initValue);
 
     public void SetValue(Vector3Int position, T value);
+
+    public void EnableChangeEvent();
+
+    public void DisableChangeEvent();
 
     public T GetValue(Vector3Int position);
 
